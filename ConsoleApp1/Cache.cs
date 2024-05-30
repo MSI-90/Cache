@@ -15,7 +15,6 @@
         public Cache()
         {
             BankOfMemory = new();
-            //ValueOfMemory = default;
         }
         public async Task<Memory?> GetOrAdd(string key, Func<Task<Memory>> valueFactory)
         {
@@ -55,7 +54,7 @@
             {
                 try
                 {
-                    InitializeEvent($"Удалён элемент со значением {removedValue?.ToString()}");
+                    InitializeEvent($"Удалён элемент c атрибутами: ключ {key} - значение {removedValue?.VolumeOfMemory}");
                     return true;
                 }
                 catch(Exception ex)
@@ -72,18 +71,11 @@
         public bool TryGet(string key, out Memory? value)
         {
             value = null;
-            if ((bool)!BankOfMemory?.Bank.ContainsKey(key)!)
-                InitializeEvent($"Нет ключа - {key}");
-
-            if ((bool)BankOfMemory?.Bank.ContainsKey(key))
-                InitializeEvent($"Уже имеется ключ в памяти - {key}");
-
-            if (BankOfMemory?.Bank[key] is null)
-                InitializeEvent($"Нет элемента по данному ключу - {key}");
+            if ((bool)!BankOfMemory?.Bank.TryGetValue(key, out value)!)
+                InitializeEvent($"Нет элемента с ключём - {key}");
             
-            value = BankOfMemory.Bank[key];
+            value = BankOfMemory?.Bank[key];
             return true;
-            throw new CacheException($"Найдено значение: {BankOfMemory.Bank[key]} для ключа: {key}");
         }
 
         public string GetList()
