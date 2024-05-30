@@ -19,12 +19,17 @@
         public async Task<TValue?> GetOrAdd(string key, Func<Task<TValue>> valueFactory)
         {
             TValue? value;
-            if (TryGet(key, out value))
+
+            if ((bool)BankOfMemory?.Bank.ContainsKey(key)!)
+            {
+                TryGet(key, out value);
+                InitializeEvent($"Найдено значение - {value} для ключа - {key}");
                 return value;
+            }
 
             var sss = await valueFactory();
             BankOfMemory?.Bank.TryAdd(key, sss);
-            InitializeEvent($"Добавлено новое значение - {sss.ToString()} для ключа - {key}");
+            InitializeEvent($"Добавлено новое значение - {sss} для ключа - {key}");
             return sss;
         }
 
@@ -33,17 +38,10 @@
             TValue? removedValue = default;
             TryGet(key, out removedValue);
 
-            try
+            if ((bool)BankOfMemory?.Bank.TryRemove(key, out removedValue)!)
             {
-                if ((bool)BankOfMemory?.Bank.TryRemove(key, out removedValue)!)
-                {
-                    InitializeEvent($"Удалён элемент c атрибутами: ключ {key}");
-                    return true;
-                }
-            }
-            catch(Exception ex)
-            {
-                Console.WriteLine(ex.Message);
+                InitializeEvent($"Удалён элемент c атрибутами: ключ {key}\n");
+                return true;
             }
 
             return false;
@@ -52,20 +50,21 @@
         public bool TryGet(string key, out TValue? value)
         {
             value = default;
+            
             if ((bool)!BankOfMemory?.Bank.TryGetValue(key, out value)!)
             {
                 InitializeEvent($"Нет элемента с ключём - {key}");
                 return false;
             }
-                
-            //value = BankOfMemory?.Bank[key];
+            
             return true;
         }
 
         public void GetList()
         {
             string fromConsole = string.Empty;
-            
+
+            Console.WriteLine("\nСписок всех элементов:");
             foreach (var item in BankOfMemory?.GetItemsFromBank()!)
                 fromConsole += item.ToString() + '\n';
             

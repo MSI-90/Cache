@@ -10,6 +10,7 @@ public class Program
         cach.ActionNotify += cach.Notify;
 
         await cach.GetOrAdd("ddddd", async() => "Hello");
+        await cach.GetOrAdd("ddddd", async() => "Hello");
         await cach.GetOrAdd("ffff", async () => "World");
         await cach.GetOrAdd("555t5t", async () => "Сложная задача");
         cach.GetList();
