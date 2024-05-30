@@ -50,21 +50,21 @@
         public bool Remove(string key)
         {
             Memory? removedValue = null;
-            if ((bool)BankOfMemory?.Bank.TryRemove(key, out removedValue)!)
+            TryGet(key, out removedValue);
+
+            try
             {
-                try
+                if ((bool)BankOfMemory?.Bank.TryRemove(key, out removedValue)!)
                 {
                     InitializeEvent($"Удалён элемент c атрибутами: ключ {key} - значение {removedValue?.VolumeOfMemory}");
                     return true;
                 }
-                catch(Exception ex)
-                { 
-                    Console.WriteLine(ex.Message); 
-                    return false; 
-                }
+            }
+            catch(Exception ex)
+            {
+                Console.WriteLine(ex.Message);
             }
 
-            InitializeEvent($"Нет ключа - {key}");
             return false;
         }
 
@@ -72,8 +72,11 @@
         {
             value = null;
             if ((bool)!BankOfMemory?.Bank.TryGetValue(key, out value)!)
+            {
                 InitializeEvent($"Нет элемента с ключём - {key}");
-            
+                return false;
+            }
+                
             value = BankOfMemory?.Bank[key];
             return true;
         }
