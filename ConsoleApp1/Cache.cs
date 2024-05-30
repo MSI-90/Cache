@@ -10,7 +10,7 @@
             remove { actionNotify -= value; }
         }
         public void InitializeEvent(string message) => actionNotify?.Invoke(message);
-        private BankOfMemory<TValue>? BankOfMemory { get; set; }
+        private BankOfMemory<TValue> BankOfMemory { get; set; }
         
         public Cache()
         {
@@ -20,7 +20,7 @@
         {
             TValue? value;
 
-            if ((bool)BankOfMemory?.Bank.ContainsKey(key)!)
+            if (BankOfMemory.Bank.ContainsKey(key))
             {
                 TryGet(key, out value);
                 InitializeEvent($"Найдено значение - {value} для ключа - {key}");
@@ -38,7 +38,7 @@
             TValue? removedValue = default;
             TryGet(key, out removedValue);
 
-            if ((bool)BankOfMemory?.Bank.TryRemove(key, out removedValue)!)
+            if (BankOfMemory.Bank.TryRemove(key, out removedValue))
             {
                 InitializeEvent($"Удалён элемент c атрибутами: ключ {key}\n");
                 return true;
@@ -51,7 +51,7 @@
         {
             value = default;
             
-            if ((bool)!BankOfMemory?.Bank.TryGetValue(key, out value)!)
+            if (BankOfMemory.Bank.TryGetValue(key, out value))
             {
                 InitializeEvent($"Нет элемента с ключём - {key}");
                 return false;
@@ -65,7 +65,7 @@
             string fromConsole = string.Empty;
 
             Console.WriteLine("\nСписок всех элементов:");
-            foreach (var item in BankOfMemory?.GetItemsFromBank()!)
+            foreach (var item in BankOfMemory.GetItemsFromBank()!)
                 fromConsole += item.ToString() + '\n';
             
             Console.WriteLine(fromConsole);
