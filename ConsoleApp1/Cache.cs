@@ -1,62 +1,43 @@
 ﻿namespace ConsoleApp1
 {
-    public delegate CacheException MyInfoDelegate(string message);
-    internal class Cache : ICache<Memory>
+    public delegate void MyInfoDelegate(string message);
+    internal class Cache<TValue> : ICache<TValue>
     {
-        MyInfoDelegate actionNotify = null;
+        MyInfoDelegate? actionNotify = null;
         internal event MyInfoDelegate ActionNotify 
         { 
             add { actionNotify += value; } 
             remove { actionNotify -= value; }
         }
-        public void InitializeEvent(string message) => actionNotify.Invoke(message);
-        private BankOfMemory? BankOfMemory { get; set; }
+        public void InitializeEvent(string message) => actionNotify?.Invoke(message);
+        private BankOfMemory<TValue>? BankOfMemory { get; set; }
         
         public Cache()
         {
             BankOfMemory = new();
         }
-        public async Task<Memory?> GetOrAdd(string key, Func<Task<Memory>> valueFactory)
+        public async Task<TValue?> GetOrAdd(string key, Func<Task<TValue>> valueFactory)
         {
-            try
-            {
-                Memory? value;
-                if (TryGet(key, out value))
-                    return value;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.Message);
-            }
+            TValue? value;
+            if (TryGet(key, out value))
+                return value;
 
-            try
-            {
-                Random random = new Random();
-
-                BankOfMemory?.Bank.TryAdd(key, new Memory
-                {
-                    VolumeOfMemory = (byte)random.Next(byte.MinValue, byte.MaxValue)
-                });
-                InitializeEvent($"Добавлено новое значение {BankOfMemory?.Bank[key]?.VolumeOfMemory}");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.Message);
-            }
-
-            return null;
+            var sss = await valueFactory();
+            BankOfMemory?.Bank.TryAdd(key, sss);
+            InitializeEvent($"Добавлено новое значение - {sss.ToString()} для ключа - {key}");
+            return sss;
         }
 
         public bool Remove(string key)
         {
-            Memory? removedValue = null;
+            TValue? removedValue = default;
             TryGet(key, out removedValue);
 
             try
             {
                 if ((bool)BankOfMemory?.Bank.TryRemove(key, out removedValue)!)
                 {
-                    InitializeEvent($"Удалён элемент c атрибутами: ключ {key} - значение {removedValue?.VolumeOfMemory}");
+                    InitializeEvent($"Удалён элемент c атрибутами: ключ {key}");
                     return true;
                 }
             }
@@ -68,32 +49,32 @@
             return false;
         }
 
-        public bool TryGet(string key, out Memory? value)
+        public bool TryGet(string key, out TValue? value)
         {
-            value = null;
+            value = default;
             if ((bool)!BankOfMemory?.Bank.TryGetValue(key, out value)!)
             {
                 InitializeEvent($"Нет элемента с ключём - {key}");
                 return false;
             }
                 
-            value = BankOfMemory?.Bank[key];
+            //value = BankOfMemory?.Bank[key];
             return true;
         }
 
-        public string GetList()
+        public void GetList()
         {
             string fromConsole = string.Empty;
             
             foreach (var item in BankOfMemory?.GetItemsFromBank()!)
                 fromConsole += item.ToString() + '\n';
             
-            return fromConsole;
+            Console.WriteLine(fromConsole);
         } 
 
-        public CacheException Notify (string message)
+        public void Notify (string message)
         {
-            throw new CacheException(message);
+            Console.WriteLine(message);
         }
     }
 }
