@@ -2,7 +2,7 @@
 
 public class Memory
 {
-    public byte VolumeOfMemory { get; set; }
+    internal byte VolumeOfMemory { get; set; }
     public async Task<Memory> MemoryFactory() 
     {
         return await Task.Run(() =>

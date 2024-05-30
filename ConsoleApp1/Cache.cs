@@ -4,14 +4,14 @@
     internal class Cache : ICache<Memory>
     {
         MyInfoDelegate actionNotify = null;
-        public event MyInfoDelegate ActionNotify 
+        internal event MyInfoDelegate ActionNotify 
         { 
             add { actionNotify += value; } 
             remove { actionNotify -= value; }
         }
         public void InitializeEvent(string message) => actionNotify.Invoke(message);
         private BankOfMemory? BankOfMemory { get; set; }
-        //private Memory? ValueOfMemory;
+        
         public Cache()
         {
             BankOfMemory = new();
@@ -34,11 +34,11 @@
             {
                 Random random = new Random();
 
-                BankOfMemory?.bank.Add(key, new Memory
+                BankOfMemory?.Bank.TryAdd(key, new Memory
                 {
                     VolumeOfMemory = (byte)random.Next(byte.MinValue, byte.MaxValue)
                 });
-                InitializeEvent($"Добавлено новое значение {BankOfMemory?.bank[key]?.VolumeOfMemory}");
+                InitializeEvent($"Добавлено новое значение {BankOfMemory?.Bank[key]?.VolumeOfMemory}");
             }
             catch (Exception ex)
             {
@@ -50,12 +50,12 @@
 
         public bool Remove(string key)
         {
-            if ((bool)BankOfMemory?.bank.ContainsKey(key)!)
+            Memory? removedValue = null;
+            if ((bool)BankOfMemory?.Bank.TryRemove(key, out removedValue)!)
             {
                 try
                 {
-                    BankOfMemory?.bank.Remove(key);
-                    InitializeEvent($"Удалён элемент");
+                    InitializeEvent($"Удалён элемент со значением {removedValue?.ToString()}");
                     return true;
                 }
                 catch(Exception ex)
@@ -72,18 +72,18 @@
         public bool TryGet(string key, out Memory? value)
         {
             value = null;
-            if ((bool)!BankOfMemory?.bank.ContainsKey(key)!)
+            if ((bool)!BankOfMemory?.Bank.ContainsKey(key)!)
                 InitializeEvent($"Нет ключа - {key}");
 
-            if ((bool)BankOfMemory?.bank.ContainsKey(key))
+            if ((bool)BankOfMemory?.Bank.ContainsKey(key))
                 InitializeEvent($"Уже имеется ключ в памяти - {key}");
 
-            if (BankOfMemory?.bank[key] is null)
+            if (BankOfMemory?.Bank[key] is null)
                 InitializeEvent($"Нет элемента по данному ключу - {key}");
             
-            value = BankOfMemory.bank[key];
+            value = BankOfMemory.Bank[key];
             return true;
-            throw new CacheException($"Найдено значение: {BankOfMemory.bank[key]} для ключа: {key}");
+            throw new CacheException($"Найдено значение: {BankOfMemory.Bank[key]} для ключа: {key}");
         }
 
         public string GetList()
