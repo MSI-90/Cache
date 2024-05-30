@@ -36,7 +36,8 @@
         public bool Remove(string key)
         {
             TValue? removedValue = default;
-            TryGet(key, out removedValue);
+            if (!TryGet(key, out removedValue))
+                return false;
 
             if (BankOfMemory.Bank.TryRemove(key, out removedValue))
             {
