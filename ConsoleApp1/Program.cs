@@ -6,38 +6,16 @@ public class Program
 {
     static async Task Main(string[] args)
     {
-        var cach = new Cache();
+        var cach = new Cache<string>();
         cach.ActionNotify += cach.Notify;
 
-        while (true)
-        {
-            Console.WriteLine("Введите ключ: ");
-            var keyboardValue = Console.ReadLine();
-            switch (keyboardValue)
-            {
-                case "exit":
-                    return;
+        await cach.GetOrAdd("ddddd", async() => "Hello");
+        await cach.GetOrAdd("ddddd", async() => "Hello");
+        await cach.GetOrAdd("ffff", async () => "World");
+        await cach.GetOrAdd("555t5t", async () => "Сложная задача");
+        cach.GetList();
 
-                case "list":
-                    await Console.Out.WriteLineAsync("Список всех элементов:");
-                    Console.WriteLine(cach.GetList());
-                    break;
-
-                case "remove":
-                    Console.WriteLine("Укажите ключ для удаления элемента: ");
-                    string? key = Console.ReadLine();
-                    cach.Remove(key);
-                    break;
-
-                default:
-                    await cach.GetOrAdd(keyboardValue, MemoryFactory);
-                    break;
-            }
-        }
-    }
-
-    static async Task<Memory> MemoryFactory()
-    {
-        return await new Memory().MemoryFactory();
+        cach.Remove("ffff");
+        cach.GetList();
     }
 }
