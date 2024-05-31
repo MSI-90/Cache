@@ -31,22 +31,20 @@ internal class Cache<TValue> : ICache<TValue>
             }
         }
 
-        //var valueSource = default(TValue);
-
-        //try
-        //{
-            var valueSource = await valueFactory();
-        //}
-        //catch (OperationCanceledException)
-        //{
-            //InitializeEvent($"Запрошена операция отмены для ключа - {key}");
-            //return default;
-        //}
+        var valueSource = await valueFactory();
         
         lock (this)
         {
-            BankOfMemory?.Bank.TryAdd(key, valueSource);
-            InitializeEvent($"Добавлено новое значение - {valueSource} для ключа - {key}");
+            var newItem = BankOfMemory?.Bank.TryAdd(key, valueSource);
+            if (newItem is true)
+            {
+                InitializeEvent($"Добавлено новое значение - {valueSource} для ключа - {key}");
+                var timeToLife = BankOfMemory?.TimeToLifeOfValue;
+                var addLife = timeToLife?.TryAdd(key, DateTimeOffset.Now.ToUnixTimeSeconds());
+                //if (addLife is true)
+                //    InitializeEvent($"Время жизни - {timeToLife?[key]} для значения - {valueSource}");
+            }
+      
             return valueSource;
         }
     }
@@ -85,12 +83,19 @@ internal class Cache<TValue> : ICache<TValue>
     public void GetList()
     {
         string fromConsole = string.Empty;
+        string fromConsole2 = string.Empty;
 
         Console.WriteLine("\nСписок всех элементов:");
         foreach (var item in BankOfMemory.GetItemsFromBank()!)
             fromConsole += item.ToString() + '\n';
-        
+
+        Console.WriteLine(new string('-', 30));
+
+        foreach (var item in BankOfMemory.GetTimesToLifeForValues()!)
+            fromConsole += item.ToString() + '\n';
+
         Console.WriteLine(fromConsole);
+        Console.WriteLine(fromConsole2);
     } 
 
     public void Notify (string message)

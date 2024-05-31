@@ -9,7 +9,7 @@ public class Program
 
         var tokenSource = new CancellationTokenSource();
         var token = tokenSource.Token;
-        tokenSource.Cancel();
+        //tokenSource.Cancel();
 
         await cach.GetOrAdd("ddddd", async() => "Hello", token);
         await cach.GetOrAdd("ddddd", async() => "Hello", token);
