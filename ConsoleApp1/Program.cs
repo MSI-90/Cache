@@ -18,5 +18,4 @@ public class Program
         cach.Remove("ffff");
         cach.GetList();
     }
-
 }
