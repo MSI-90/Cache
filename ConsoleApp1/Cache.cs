@@ -18,11 +18,9 @@
         }
         public async Task<TValue?> GetOrAdd(string key, Func<Task<TValue>> valueFactory)
         {
-            TValue? value;
-
             if (BankOfMemory.Bank.ContainsKey(key))
             {
-                TryGet(key, out value);
+                TryGet(key, out TValue? value);
                 InitializeEvent($"Найдено значение - {value} для ключа - {key}");
                 return value;
             }
@@ -35,11 +33,10 @@
 
         public bool Remove(string key)
         {
-            TValue? removedValue = default;
-            if (!TryGet(key, out removedValue))
+            if (!TryGet(key, out TValue? _))
                 return false;
 
-            if (BankOfMemory.Bank.TryRemove(key, out removedValue))
+            if (BankOfMemory.Bank.TryRemove(key, out _))
             {
                 InitializeEvent($"Удалён элемент c атрибутами: ключ {key}\n");
                 return true;
@@ -50,9 +47,7 @@
 
         public bool TryGet(string key, out TValue? value)
         {
-            value = default;
-            
-            if (BankOfMemory.Bank.TryGetValue(key, out value))
+            if (!BankOfMemory.Bank.TryGetValue(key, out value))
             {
                 InitializeEvent($"Нет элемента с ключём - {key}");
                 return false;
