@@ -1,6 +1,4 @@
-﻿using System.Reflection.Metadata;
-
-namespace ConsoleApp1;
+﻿namespace ConsoleApp1;
 
 public class Program
 {
@@ -9,10 +7,14 @@ public class Program
         var cach = new Cache<string>();
         cach.ActionNotify += cach.Notify;
 
-        await cach.GetOrAdd("ddddd", async() => "Hello");
-        await cach.GetOrAdd("ddddd", async() => "Hello");
-        await cach.GetOrAdd("ffff", async () => "World");
-        await cach.GetOrAdd("555t5t", async () => "Сложная задача");
+        var tokenSource = new CancellationTokenSource();
+        var token = tokenSource.Token;
+        tokenSource.Cancel();
+
+        await cach.GetOrAdd("ddddd", async() => "Hello", token);
+        await cach.GetOrAdd("ddddd", async() => "Hello", token);
+        await cach.GetOrAdd("ffff", async () => "World", token);
+        await cach.GetOrAdd("555t5t", async () => "Сложная задача", token);
         cach.GetList();
 
         cach.Remove("ffff");
