@@ -1,104 +1,131 @@
-﻿namespace ConsoleApp1
+﻿namespace ConsoleApp1;
+
+public delegate void MyInfoDelegate(string message);
+internal class Cache<TValue> : ICache<TValue>
 {
-    public delegate CacheException MyInfoDelegate(string message);
-    internal class Cache : ICache<Memory>
+    MyInfoDelegate? actionNotify = null;
+    internal event MyInfoDelegate ActionNotify 
+    { 
+        add { actionNotify += value; } 
+        remove { actionNotify -= value; }
+    }
+    public void InitializeEvent(string message) => actionNotify?.Invoke(message);
+    private BankOfMemory<TValue> BankOfMemory { get; set; }
+    private long timeToLife = default;
+    public long TimeToLife
     {
-        MyInfoDelegate actionNotify = null;
-        public event MyInfoDelegate ActionNotify 
-        { 
-            add { actionNotify += value; } 
-            remove { actionNotify -= value; }
-        }
-        public void InitializeEvent(string message) => actionNotify.Invoke(message);
-        private BankOfMemory? BankOfMemory { get; set; }
-        //private Memory? ValueOfMemory;
-        public Cache()
+        get => timeToLife; 
+        set => timeToLife = value;
+    }
+    public Cache(int time)
+    {
+        TimeToLife = time;
+        BankOfMemory = new();
+    }
+
+    public async Task<TValue?> GetOrAdd(string key, Func<Task<TValue>> valueFactory, CancellationToken token)
+    {
+        if (token.IsCancellationRequested)
         {
-            BankOfMemory = new();
-            //ValueOfMemory = default;
-        }
-        public async Task<Memory?> GetOrAdd(string key, Func<Task<Memory>> valueFactory)
-        {
-            try
-            {
-                Memory? value;
-                if (TryGet(key, out value))
-                    return value;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.Message);
-            }
-
-            try
-            {
-                Random random = new Random();
-
-                BankOfMemory?.bank.Add(key, new Memory
-                {
-                    VolumeOfMemory = (byte)random.Next(byte.MinValue, byte.MaxValue)
-                });
-                InitializeEvent($"Добавлено новое значение {BankOfMemory?.bank[key]?.VolumeOfMemory}");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.Message);
-            }
-
-            return null;
+            InitializeEvent($"Запрошена операция отмены для ключа - {key}");
+            return default;
         }
 
-        public bool Remove(string key)
+        if (BankOfMemory.Bank.ContainsKey(key))
         {
-            if ((bool)BankOfMemory?.bank.ContainsKey(key)!)
+            lock (this)
             {
-                try
-                {
-                    BankOfMemory?.bank.Remove(key);
-                    InitializeEvent($"Удалён элемент");
-                    return true;
-                }
-                catch(Exception ex)
-                { 
-                    Console.WriteLine(ex.Message); 
-                    return false; 
-                }
+                TryGet(key, out TValue? value);
+                InitializeEvent($"Найдено значение - {value} для ключа - {key}");
+                if (DateTime.Now > BankOfMemory.TimeToLifeOfValue[key])
+                    Remove(key);
+
+                return value;
             }
-
-            InitializeEvent($"Нет ключа - {key}");
-            return false;
         }
 
-        public bool TryGet(string key, out Memory? value)
+        var valueSource = await valueFactory();
+        
+        lock (this)
         {
-            value = null;
-            if ((bool)!BankOfMemory?.bank.ContainsKey(key)!)
-                InitializeEvent($"Нет ключа - {key}");
-
-            if ((bool)BankOfMemory?.bank.ContainsKey(key))
-                InitializeEvent($"Уже имеется ключ в памяти - {key}");
-
-            if (BankOfMemory?.bank[key] is null)
-                InitializeEvent($"Нет элемента по данному ключу - {key}");
-            
-            value = BankOfMemory.bank[key];
-            return true;
-            throw new CacheException($"Найдено значение: {BankOfMemory.bank[key]} для ключа: {key}");
+            var newItem = BankOfMemory?.Bank.TryAdd(key, valueSource);
+            if (newItem is true)
+            {
+                InitializeEvent($"Добавлено новое значение - {valueSource} для ключа - {key}");
+                var timeToLife = BankOfMemory?.TimeToLifeOfValue;
+                var addLife = timeToLife?.TryAdd(key, DateTime.Now.AddSeconds(TimeToLife));
+            }
+      
+            return valueSource;
         }
+    }
 
-        public string GetList()
+    public bool Remove(string key)
+    {
+        lock(this)
         {
-            string fromConsole = string.Empty;
-            
-            foreach (var item in BankOfMemory?.GetItemsFromBank()!)
+            if (!TryGet(key, out TValue? _))
+                return false;
+
+            if (BankOfMemory.Bank.TryRemove(key, out _))
+            {
+                InitializeEvent($"Удалён элемент c атрибутами: ключ {key}\n");
+                BankOfMemory.TimeToLifeOfValue.TryRemove(key, out DateTime _);
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    public bool TryGet(string key, out TValue? value)
+    {
+        lock (this)
+        {
+            if (!BankOfMemory.Bank.TryGetValue(key, out value))
+            {
+                InitializeEvent($"Нет элемента с ключём - {key}");
+                return false;
+            }
+        }
+        
+        return true;
+    }
+
+    public void GetList()
+    {
+        string fromConsole = string.Empty;
+        Console.WriteLine("\nСписок всех элементов:");
+
+        foreach (var item in BankOfMemory.GetItemsFromBank()!)
+            fromConsole += item.ToString() + '\n';
+
+        Console.WriteLine(new string('-', 30));
+        Console.WriteLine(fromConsole);
+    } 
+
+    public void GetTimesLifes()
+    {
+        string fromConsole = string.Empty;
+        Console.WriteLine("\nВремя жизни объектов:");
+
+        if (BankOfMemory?.GetTimesToLifeForValues()?.Any() == true)
+        {
+            foreach (var item in BankOfMemory?.GetTimesToLifeForValues())
+            {
                 fromConsole += item.ToString() + '\n';
-            
-            return fromConsole;
-        } 
-
-        public CacheException Notify (string message)
-        {
-            throw new CacheException(message);
+            }
         }
+        else
+            fromConsole = "Все объекты закончили свой срок жизни(";
+            
+
+        Console.WriteLine(new string('-', 30));
+        Console.WriteLine(fromConsole);
+    }
+
+    public void Notify (string message)
+    {
+        Console.WriteLine(message);
     }
 }
