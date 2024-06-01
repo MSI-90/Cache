@@ -4,25 +4,15 @@ public class Program
 {
     static async Task Main(string[] args)
     {
-        var cach = new Cache<string>(10);
-        cach.ActionNotify += cach.Notify;
+        var firstThread = new Thread(FirstThread);
+        firstThread.Start();
+        Thread.Sleep(500);
 
-        var tokenSource = new CancellationTokenSource();
-        var token = tokenSource.Token;
-        //tokenSource.Cancel();
-
-        await cach.GetOrAdd("ddddd", async () => "Hello", token);
-        await cach.GetOrAdd("ddddd", async () => "Hello", token);
-        await cach.GetOrAdd("ffff", async () => "World", token);
-        await cach.GetOrAdd("555t5t", async () => "Сложная задача", token);
-        cach.GetList();
-
-        cach.Remove("ffff");
-        cach.GetList();
-        cach.GetTimesLifes();
-
-
-        //Проверить через консоль)
+        var twoThread = new Thread(TwoThread);
+        twoThread.Start();
+        Thread.Sleep(200);
+        
+        //тест через консоль)
 
         //while (true)
         //{
@@ -59,4 +49,41 @@ public class Program
     //{
     //    return new string("feefefeefefef");
     //}
+
+    static async void FirstThread()
+    {
+        var cach = new Cache<string>(10);
+        cach.ActionNotify += cach.Notify;
+
+        var tokenSource = new CancellationTokenSource();
+        var token = tokenSource.Token;
+        //tokenSource.Cancel();
+
+        await cach.GetOrAdd("ddddd", async () => "Hello", token);
+        await cach.GetOrAdd("ddddd", async () => "Hello", token);
+        await cach.GetOrAdd("ffff", async () => "World", token);
+        await cach.GetOrAdd("555t5t", async () => "Сложная задача", token);
+        cach.GetList();
+        cach.Remove("ffff");
+        cach.GetList();
+        cach.GetTimesLifes();
+    }
+
+    static async void TwoThread()
+    {
+        //cache2
+        var cach2 = new Cache<int>(15);
+        cach2.ActionNotify += cach2.Notify;
+        var tokenSource = new CancellationTokenSource();
+        var token = tokenSource.Token;
+
+        await cach2.GetOrAdd("ddddd", async () => 1255255, token);
+        await cach2.GetOrAdd("ddddd", async () => 90291092, token);
+        await cach2.GetOrAdd("ffff", async () => 94589895, token);
+        await cach2.GetOrAdd("555t5t", async () => 1101010101, token);
+        cach2.GetList();
+        cach2.Remove("ffff");
+        cach2.GetList();
+        cach2.GetTimesLifes();
+    } 
 }
