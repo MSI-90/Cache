@@ -11,7 +11,17 @@ internal class Cache<TValue> : ICache<TValue>
     }
     public void InitializeEvent(string message) => actionNotify?.Invoke(message);
     private BankOfMemory<TValue> BankOfMemory { get; set; }
-    public Cache() => BankOfMemory = new();
+    private long timeToLife = default;
+    public long TimeToLife
+    {
+        get => timeToLife; 
+        set => timeToLife = value;
+    }
+    public Cache(int time)
+    {
+        TimeToLife = time;
+        BankOfMemory = new();
+    }
 
     public async Task<TValue?> GetOrAdd(string key, Func<Task<TValue>> valueFactory, CancellationToken token)
     {
@@ -27,6 +37,9 @@ internal class Cache<TValue> : ICache<TValue>
             {
                 TryGet(key, out TValue? value);
                 InitializeEvent($"Найдено значение - {value} для ключа - {key}");
+                if (DateTime.Now > BankOfMemory.TimeToLifeOfValue[key])
+                    Remove(key);
+
                 return value;
             }
         }
@@ -40,9 +53,7 @@ internal class Cache<TValue> : ICache<TValue>
             {
                 InitializeEvent($"Добавлено новое значение - {valueSource} для ключа - {key}");
                 var timeToLife = BankOfMemory?.TimeToLifeOfValue;
-                var addLife = timeToLife?.TryAdd(key, DateTimeOffset.Now.ToUnixTimeSeconds());
-                //if (addLife is true)
-                //    InitializeEvent($"Время жизни - {timeToLife?[key]} для значения - {valueSource}");
+                var addLife = timeToLife?.TryAdd(key, DateTime.Now.AddSeconds(TimeToLife));
             }
       
             return valueSource;
@@ -59,6 +70,7 @@ internal class Cache<TValue> : ICache<TValue>
             if (BankOfMemory.Bank.TryRemove(key, out _))
             {
                 InitializeEvent($"Удалён элемент c атрибутами: ключ {key}\n");
+                BankOfMemory.TimeToLifeOfValue.TryRemove(key, out DateTime _);
                 return true;
             }
         }
@@ -83,20 +95,34 @@ internal class Cache<TValue> : ICache<TValue>
     public void GetList()
     {
         string fromConsole = string.Empty;
-        string fromConsole2 = string.Empty;
-
         Console.WriteLine("\nСписок всех элементов:");
+
         foreach (var item in BankOfMemory.GetItemsFromBank()!)
             fromConsole += item.ToString() + '\n';
 
         Console.WriteLine(new string('-', 30));
-
-        foreach (var item in BankOfMemory.GetTimesToLifeForValues()!)
-            fromConsole += item.ToString() + '\n';
-
         Console.WriteLine(fromConsole);
-        Console.WriteLine(fromConsole2);
     } 
+
+    public void GetTimesLifes()
+    {
+        string fromConsole = string.Empty;
+        Console.WriteLine("\nВремя жизни объектов:");
+
+        if (BankOfMemory?.GetTimesToLifeForValues()?.Any() == true)
+        {
+            foreach (var item in BankOfMemory?.GetTimesToLifeForValues())
+            {
+                fromConsole += item.ToString() + '\n';
+            }
+        }
+        else
+            fromConsole = "Все объекты закончили свой срок жизни(";
+            
+
+        Console.WriteLine(new string('-', 30));
+        Console.WriteLine(fromConsole);
+    }
 
     public void Notify (string message)
     {
